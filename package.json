@@ -1,0 +1,23 @@
+{
+  "name": "hh-goa-2026-frame-generator",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "server": "node server/server.js",
+    "start": "node server/server.js"
+  },
+  "dependencies": {
+    "heic2any": "^0.0.4",
+    "lucide": "^0.344.0"
+  },
+  "devDependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.4"
+  }
+}
