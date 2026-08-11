@@ -61,14 +61,26 @@ function initApp() {
           </h2>
 
           <!-- Photo Upload Dropzone -->
-          <div id="dropzone" class="dropzone">
-            <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            <div class="dropzone-title">Click or Drag Photo Here</div>
-            <div class="dropzone-subtitle">Supports JPG, PNG, WebP &amp; iPhone HEIC</div>
+          <div id="dropzone" class="dropzone" tabindex="0">
+            <!-- State A: No image -->
+            <div id="dropzone-empty">
+              <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <div class="dropzone-title">Click or Drag Photo Here</div>
+              <div class="dropzone-subtitle">Supports JPG, PNG, WebP &amp; iPhone HEIC</div>
+            </div>
+            <!-- State B: Image loaded (hidden by default) -->
+            <div id="dropzone-loaded" style="display:none; width:100%; text-align:center;">
+              <div style="position:relative; display:inline-block; margin-bottom:0.6rem;">
+                <img id="dropzone-thumb" src="" alt="Preview" style="width:90px; height:90px; object-fit:cover; border-radius:50%; border:3px solid var(--accent-yellow); box-shadow:var(--shadow-brutal-sm);" />
+                <div style="position:absolute;bottom:0;right:0;background:var(--accent-magenta);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;">✓</div>
+              </div>
+              <div class="dropzone-title" style="color:var(--accent-yellow); font-size:0.9rem;">Photo Loaded!</div>
+              <div class="dropzone-subtitle" style="color:rgba(255,251,232,0.6); font-size:0.78rem; margin-top:0.2rem;">Click to change photo</div>
+            </div>
             <input type="file" id="fileInput" accept="image/*" style="display: none" />
           </div>
 
@@ -292,16 +304,41 @@ function bindEvents() {
   document.getElementById('btnShareX')?.addEventListener('click', shareToX);
 }
 
+let lastThumbUrl = '';
+
 async function handleFile(file: File) {
   showToast('Processing photo...');
   try {
     const img = await processAndLoadImage(file);
     state.userImage = img;
+    // Create a lightweight object URL for the thumbnail
+    if (lastThumbUrl) URL.revokeObjectURL(lastThumbUrl);
+    lastThumbUrl = URL.createObjectURL(file);
+    updateDropzoneUI(lastThumbUrl);
     render();
-    showToast('Photo loaded successfully! 🎉');
+    showToast('Photo loaded! 🎉');
   } catch (err) {
     console.error('File load error:', err);
     showToast('Failed to load image. Please try another file.');
+  }
+}
+
+function updateDropzoneUI(src: string) {
+  const empty  = document.getElementById('dropzone-empty');
+  const loaded = document.getElementById('dropzone-loaded');
+  const thumb  = document.getElementById('dropzone-thumb') as HTMLImageElement;
+  const dz     = document.getElementById('dropzone');
+  if (!empty || !loaded) return;
+
+  if (src) {
+    empty.style.display  = 'none';
+    loaded.style.display = 'block';
+    if (thumb) thumb.src = src;
+    if (dz) dz.style.paddingTop = '1.2rem';
+  } else {
+    empty.style.display  = 'block';
+    loaded.style.display = 'none';
+    if (dz) dz.style.paddingTop = '';
   }
 }
 

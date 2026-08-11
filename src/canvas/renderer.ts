@@ -117,11 +117,39 @@ export function drawGraphic(canvas: HTMLCanvasElement, options: RenderOptions) {
 
 // ─── FORMAT A: PFP Frame/Overlay ──────────────────────────────────────────────
 // Canvas: 1080 × 1080 square
-// DRAW ORDER (critical):
-//   1. Green background
-//   2. Frame PNG as background layer (has white circle placeholder + decorations)
-//   3. User photo clipped to circle — drawn ON TOP of the white placeholder
-//   4. गोवा sticker drawn last so it appears over the photo edge
+// Offscreen canvas cache for hole-punched frame overlay
+let punchedFrameCanvas: HTMLCanvasElement | null = null;
+
+function getPunchedFrame(img: HTMLImageElement): HTMLCanvasElement {
+  if (punchedFrameCanvas) return punchedFrameCanvas;
+  const off = document.createElement('canvas');
+  const imgW = img.naturalWidth || 950;
+  const imgH = img.naturalHeight || 1190;
+  off.width = imgW;
+  off.height = imgH;
+  const ctx = off.getContext('2d');
+  if (!ctx) return off;
+
+  // 1. Draw original frame image
+  ctx.drawImage(img, 0, 0);
+
+  // 2. Punch out the white circle at (474.5, 538.5) radius 301
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.beginPath();
+  ctx.arc(474.5, 538.5, 301, 0, Math.PI * 2);
+  ctx.fill();
+
+  punchedFrameCanvas = off;
+  return off;
+}
+
+// ─── FORMAT A: PFP Frame/Overlay ──────────────────────────────────────────────
+// Canvas: 1080 × 1350 (4:5 ratio)
+// DRAW ORDER:
+//   1. Solid green background fill
+//   2. User photo (clipped to circle hole) or white placeholder circle
+//   3. Frame overlay with punched transparent hole drawn ON TOP
+//      (Yellow title, dashed ring & pink Goa sticker sit cleanly on top of photo)
 
 function renderFormatA(
   ctx: CanvasRenderingContext2D,
@@ -134,59 +162,34 @@ function renderFormatA(
   ctx.fillStyle = '#0b5c35';
   ctx.fillRect(0, 0, W, H);
 
-  // ── Compute frame layout geometry ──
-  // Canvas is 1080×1350 (4:5), frame PNG is also ~4:5 portrait.
-  // Draw the frame to FILL the entire canvas exactly — no cropping, no bars.
-  const frameOffsetX = 0;
-  const frameOffsetY = 0;
-  const frameDrawW   = W;
-  const frameDrawH   = H;
+  // Geometry derived from plan_a.png (950 × 1190)
+  const scaleX = W / 950;
+  const scaleY = H / 1190;
 
-  // Circle hole position measured from plan_a.png:
-  //   centre ~50% x, ~44.5% y within the source image
-  //   radius ~37.5% of source width
-  const holeCentreXRatio = 0.500;
-  const holeCentreYRatio = 0.445;
-  const holeRadiusRatio  = 0.375;
+  const circleCX = 474.5 * scaleX; // ~539.4 px
+  const circleCY = 538.5 * scaleY; // ~611.1 px
+  const circleR  = 301 * scaleX;    // ~342.2 px
 
-  const circleCX = frameOffsetX + frameDrawW * holeCentreXRatio;
-  const circleCY = frameOffsetY + frameDrawH * holeCentreYRatio;
-  const circleR  = frameDrawW * holeRadiusRatio;
-
-  // ── Step 2. Draw frame PNG as the BACKGROUND ──
-  // The frame has a solid white circle placeholder — it acts as the background.
-  // We draw it FIRST, then draw the user photo ON TOP of the white circle.
-  if (pfpFrameImage?.complete && pfpFrameImage.naturalWidth > 0) {
-    ctx.drawImage(pfpFrameImage, frameOffsetX, frameOffsetY, frameDrawW, frameDrawH);
-  } else {
-    // Frame not loaded yet — show a minimal green background and trigger reload
-    loadPfpFrame().then(() => { if (canvas) drawGraphic(canvas, opts); });
-  }
-
-  // ── Step 3. Draw user photo clipped to circle ON TOP of the white placeholder ──
+  // ── Step 2. Draw user photo UNDER the frame overlay ──
   if (opts.userImage) {
     ctx.save();
-    // Clip strictly to the circle
+    // Clip slightly larger (+3px) than hole to ensure zero gap under frame border
     ctx.beginPath();
-    ctx.arc(circleCX, circleCY, circleR, 0, Math.PI * 2);
+    ctx.arc(circleCX, circleCY, circleR + 3, 0, Math.PI * 2);
     ctx.clip();
 
     const img = opts.userImage;
     const imgAspect = img.naturalWidth / img.naturalHeight;
-
-    // Scale to COVER the full circle diameter, then apply user zoom/pan/rotate
     const diameter = circleR * 2;
+
     let drawW: number, drawH: number;
     if (imgAspect >= 1) {
-      // landscape or square — fit height first so it covers
       drawH = diameter * opts.scale;
       drawW = drawH * imgAspect;
     } else {
-      // portrait — fit width first so it covers
       drawW = diameter * opts.scale;
       drawH = drawW / imgAspect;
     }
-    // Ensure the smaller dimension always covers the full diameter
     if (drawW < diameter) { drawW = diameter; drawH = drawW / imgAspect; }
     if (drawH < diameter) { drawH = diameter; drawW = drawH * imgAspect; }
 
@@ -194,23 +197,27 @@ function renderFormatA(
     ctx.rotate((opts.rotation * Math.PI) / 180);
     ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
     ctx.restore();
-  }
-  // (No placeholder needed when no image — the frame's own white circle shows)
-
-  // ── Step 4. Draw गोवा sticker ON TOP of photo (bottom-right of circle) ──
-  // Position matches the reference design: sticker sits at ~4 o'clock on the circle edge
-  const stickerW = circleR * 0.85;   // width of sticker relative to circle
-  const stickerH = stickerW * 0.82;  // sticker PNG is roughly square-ish
-  // Place it so it overlaps the circle edge at bottom-right (~63% x, ~72% y from circle centre)
-  const stickerX = circleCX + circleR * 0.38 - stickerW * 0.3;
-  const stickerY = circleCY + circleR * 0.62 - stickerH * 0.15;
-
-  if (pfpStickerImage?.complete && pfpStickerImage.naturalWidth > 0) {
-    ctx.drawImage(pfpStickerImage, stickerX, stickerY, stickerW, stickerH);
   } else {
-    loadPfpSticker().then(() => { if (canvas) drawGraphic(canvas, opts); });
+    // White placeholder circle when no image loaded yet
+    ctx.save();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(circleCX, circleCY, circleR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ── Step 3. Draw frame overlay ON TOP (punched hole lets photo show through) ──
+  if (pfpFrameImage?.complete && pfpFrameImage.naturalWidth > 0) {
+    const frameOverlay = getPunchedFrame(pfpFrameImage);
+    ctx.drawImage(frameOverlay, 0, 0, W, H);
+  } else {
+    loadPfpFrame().then(() => {
+      if (canvas) drawGraphic(canvas, opts);
+    });
   }
 }
+
 
 // ─── FORMAT B: Builder ID Card ────────────────────────────────────────────────
 // Canvas: 1587 × 2245
