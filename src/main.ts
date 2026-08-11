@@ -111,7 +111,7 @@ function initApp() {
         <!-- Right Panel: Live Preview & Action Buttons -->
         <div class="card-panel preview-container">
           <h2 class="panel-title" style="width: 100%;">
-            <span>👁️</span> Live Graphic Preview
+           Live Graphic Preview
           </h2>
 
           <div id="canvasWrapper" class="canvas-wrapper badge-aspect">
