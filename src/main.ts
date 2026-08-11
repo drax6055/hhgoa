@@ -28,9 +28,8 @@ function initApp() {
     <!-- Top Navbar -->
     <header class="navbar">
       <div class="brand-title">
-        <span style="font-size: 1.6rem">🚀</span>
         <span>HH GOA 2026</span>
-        <span class="brand-badge">Official Generator</span>
+        <span class="brand-badge">ID Builder Generator</span>
       </div>
       <div class="hashtag-tag">
         <span>#FrameInGoa</span>
@@ -121,7 +120,7 @@ function initApp() {
 
           <div class="actions-row">
             <button id="btnDownload" class="btn-primary">
-              <span>⬇️</span> Download High-Res PNG
+              <span>⬇️</span> Download 
             </button>
             <button id="btnShareX" class="btn-x-share">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -328,7 +327,7 @@ function fallbackDataUrlDownload(filename: string) {
 
 async function shareToX() {
   if (!mainCanvas) return;
-  
+
   const base64 = mainCanvas.toDataURL('image/png', 0.95);
   showToast('Preparing X share link...');
 
