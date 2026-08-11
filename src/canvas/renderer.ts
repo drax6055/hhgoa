@@ -22,6 +22,9 @@ let goaStickerPromise: Promise<HTMLImageElement> | null = null;
 let pfpFrameImage: HTMLImageElement | null = null;
 let pfpFramePromise: Promise<HTMLImageElement> | null = null;
 
+let pfpStickerImage: HTMLImageElement | null = null;
+let pfpStickerPromise: Promise<HTMLImageElement> | null = null;
+
 // ─── Loaders ──────────────────────────────────────────────────────────────────
 
 export function loadBadgeTemplate(): Promise<HTMLImageElement> {
@@ -63,10 +66,24 @@ export function loadPfpFrame(): Promise<HTMLImageElement> {
   return pfpFramePromise;
 }
 
+export function loadPfpSticker(): Promise<HTMLImageElement> {
+  if (pfpStickerImage?.complete) return Promise.resolve(pfpStickerImage);
+  if (pfpStickerPromise) return pfpStickerPromise;
+  pfpStickerPromise = new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => { pfpStickerImage = img; resolve(img); };
+    img.onerror = (err) => { console.error('Failed to load /pfp_beage.png', err); reject(err); };
+    img.src = '/pfp_beage.png';
+  });
+  return pfpStickerPromise;
+}
+
 // Pre-trigger loading of all assets
 loadBadgeTemplate().catch(() => {});
 loadGoaSticker().catch(() => {});
 loadPfpFrame().catch(() => {});
+loadPfpSticker().catch(() => {});
 
 // ─── Main entry point ─────────────────────────────────────────────────────────
 
@@ -99,12 +116,11 @@ export function drawGraphic(canvas: HTMLCanvasElement, options: RenderOptions) {
 
 // ─── FORMAT A: PFP Frame/Overlay ──────────────────────────────────────────────
 // Canvas: 1080 × 1080 square
-// The pfp_frame.png sits as a full overlay on top. The user photo is drawn
-// clipped into a circle that fits inside the circular hole in the frame.
-//
-// Measurements from plan_a.png (4:5 source scaled to 1080×1080 square):
-//   Circle centre: ~50% X, ~43% Y  → (540, 464)
-//   Circle radius: ~34% of width    → 370 px
+// DRAW ORDER (critical):
+//   1. Green background
+//   2. Frame PNG as background layer (has white circle placeholder + decorations)
+//   3. User photo clipped to circle — drawn ON TOP of the white placeholder
+//   4. गोवा sticker drawn last so it appears over the photo edge
 
 function renderFormatA(
   ctx: CanvasRenderingContext2D,
@@ -113,39 +129,32 @@ function renderFormatA(
   opts: RenderOptions,
   canvas?: HTMLCanvasElement
 ) {
-  // ── 1. Dark green background (matches frame colour) ──
+  // ── Step 1. Solid green background ──
   ctx.fillStyle = '#0b5c35';
   ctx.fillRect(0, 0, W, H);
 
-  // ── 2. Clipped user photo inside the circular hole ──
-  // The frame image is 4:5 tall so the circle hole centre (from the PNG)
-  // at ~50% x and ~42% y in the original — when we scale to square we keep
-  // the same pixel ratios relative to the 1080-wide side.
-  // Frame source: 950×1190px → scaled to fill 1080 wide → height = 1080*(1190/950)=1353
-  // So the frame PNG is drawn starting at y = (1080-1353)/2 = -136 to centre it.
-
-  const frameSrcW = pfpFrameImage ? pfpFrameImage.naturalWidth : 950;
+  // ── Compute frame layout geometry ──
+  // Frame PNG is portrait (4:5 ratio). We scale it to cover the square canvas.
+  const frameSrcW = pfpFrameImage ? pfpFrameImage.naturalWidth  : 950;
   const frameSrcH = pfpFrameImage ? pfpFrameImage.naturalHeight : 1190;
   const frameAspect = frameSrcW / frameSrcH;
 
-  let frameDrawW: number, frameDrawH: number, frameOffsetX: number, frameOffsetY: number;
 
-  // Fit the frame to cover the 1080×1080 square (cover strategy)
+  // Scale frame to COVER the square canvas (same as CSS background-size: cover)
+  let frameDrawW: number, frameDrawH: number, frameOffsetX: number, frameOffsetY: number;
   if (W / H > frameAspect) {
-    // canvas is wider → fit by width
     frameDrawW = W;
     frameDrawH = W / frameAspect;
   } else {
-    // canvas is taller → fit by height
     frameDrawH = H;
     frameDrawW = H * frameAspect;
   }
   frameOffsetX = (W - frameDrawW) / 2;
   frameOffsetY = (H - frameDrawH) / 2;
 
-  // The circular hole in plan_a.png is roughly:
-  //   centre: 50% x, 44.5% y (of the source image dimensions)
-  //   radius: 37.5% of source width
+  // Circle hole position measured from plan_a.png:
+  //   centre ~50% x, ~44.5% y within the source image
+  //   radius ~37.5% of source width
   const holeCentreXRatio = 0.500;
   const holeCentreYRatio = 0.445;
   const holeRadiusRatio  = 0.375;
@@ -154,8 +163,20 @@ function renderFormatA(
   const circleCY = frameOffsetY + frameDrawH * holeCentreYRatio;
   const circleR  = frameDrawW * holeRadiusRatio;
 
+  // ── Step 2. Draw frame PNG as the BACKGROUND ──
+  // The frame has a solid white circle placeholder — it acts as the background.
+  // We draw it FIRST, then draw the user photo ON TOP of the white circle.
+  if (pfpFrameImage?.complete && pfpFrameImage.naturalWidth > 0) {
+    ctx.drawImage(pfpFrameImage, frameOffsetX, frameOffsetY, frameDrawW, frameDrawH);
+  } else {
+    // Frame not loaded yet — show a minimal green background and trigger reload
+    loadPfpFrame().then(() => { if (canvas) drawGraphic(canvas, opts); });
+  }
+
+  // ── Step 3. Draw user photo clipped to circle ON TOP of the white placeholder ──
   if (opts.userImage) {
     ctx.save();
+    // Clip strictly to the circle
     ctx.beginPath();
     ctx.arc(circleCX, circleCY, circleR, 0, Math.PI * 2);
     ctx.clip();
@@ -163,50 +184,41 @@ function renderFormatA(
     const img = opts.userImage;
     const imgAspect = img.naturalWidth / img.naturalHeight;
 
-    // Cover the circle bounding box, then apply user adjustments
-    const baseSize = circleR * 2 * opts.scale;
-    let drawW = baseSize;
-    let drawH = baseSize / imgAspect;
-    if (drawH < baseSize) {
-      drawH = baseSize;
-      drawW = baseSize * imgAspect;
+    // Scale to COVER the full circle diameter, then apply user zoom/pan/rotate
+    const diameter = circleR * 2;
+    let drawW: number, drawH: number;
+    if (imgAspect >= 1) {
+      // landscape or square — fit height first so it covers
+      drawH = diameter * opts.scale;
+      drawW = drawH * imgAspect;
+    } else {
+      // portrait — fit width first so it covers
+      drawW = diameter * opts.scale;
+      drawH = drawW / imgAspect;
     }
+    // Ensure the smaller dimension always covers the full diameter
+    if (drawW < diameter) { drawW = diameter; drawH = drawW / imgAspect; }
+    if (drawH < diameter) { drawH = diameter; drawW = drawH * imgAspect; }
 
-    ctx.translate(
-      circleCX + opts.offsetX,
-      circleCY + opts.offsetY
-    );
+    ctx.translate(circleCX + opts.offsetX, circleCY + opts.offsetY);
     ctx.rotate((opts.rotation * Math.PI) / 180);
     ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
     ctx.restore();
-  } else {
-    // Placeholder circle
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(circleCX, circleCY, circleR, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(254,225,1,0.5)';
-    ctx.lineWidth = 6;
-    ctx.setLineDash([18, 10]);
-    ctx.stroke();
-
-    // Placeholder icon + text
-    ctx.fillStyle = 'rgba(254,225,1,0.7)';
-    ctx.font = `bold ${Math.round(circleR * 0.22)}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('📷 Upload Photo', circleCX, circleCY);
-    ctx.restore();
   }
+  // (No placeholder needed when no image — the frame's own white circle shows)
 
-  // ── 3. Draw the PFP frame PNG on top (full overlay) ──
-  if (pfpFrameImage?.complete && pfpFrameImage.naturalWidth > 0) {
-    ctx.drawImage(pfpFrameImage, frameOffsetX, frameOffsetY, frameDrawW, frameDrawH);
+  // ── Step 4. Draw गोवा sticker ON TOP of photo (bottom-right of circle) ──
+  // Position matches the reference design: sticker sits at ~4 o'clock on the circle edge
+  const stickerW = circleR * 0.85;   // width of sticker relative to circle
+  const stickerH = stickerW * 0.82;  // sticker PNG is roughly square-ish
+  // Place it so it overlaps the circle edge at bottom-right (~63% x, ~72% y from circle centre)
+  const stickerX = circleCX + circleR * 0.38 - stickerW * 0.3;
+  const stickerY = circleCY + circleR * 0.62 - stickerH * 0.15;
+
+  if (pfpStickerImage?.complete && pfpStickerImage.naturalWidth > 0) {
+    ctx.drawImage(pfpStickerImage, stickerX, stickerY, stickerW, stickerH);
   } else {
-    loadPfpFrame().then(() => {
-      if (canvas) drawGraphic(canvas, opts);
-    });
+    loadPfpSticker().then(() => { if (canvas) drawGraphic(canvas, opts); });
   }
 }
 
