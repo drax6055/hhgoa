@@ -116,15 +116,19 @@ export function drawGraphic(canvas: HTMLCanvasElement, options: RenderOptions) {
 }
 
 // ─── FORMAT A: PFP Frame/Overlay ──────────────────────────────────────────────
-// Canvas: 1080 × 1080 square
+// Canvas: 1080 × 1350 (4:5 ratio)
 // Offscreen canvas cache for hole-punched frame overlay
 let punchedFrameCanvas: HTMLCanvasElement | null = null;
 
 function getPunchedFrame(img: HTMLImageElement): HTMLCanvasElement {
-  if (punchedFrameCanvas) return punchedFrameCanvas;
+  if (punchedFrameCanvas && punchedFrameCanvas.width === img.naturalWidth && punchedFrameCanvas.height === img.naturalHeight) {
+    return punchedFrameCanvas;
+  }
+  if (!img.complete || img.naturalWidth === 0) return document.createElement('canvas');
+
   const off = document.createElement('canvas');
-  const imgW = img.naturalWidth || 950;
-  const imgH = img.naturalHeight || 1190;
+  const imgW = img.naturalWidth || 1080;
+  const imgH = img.naturalHeight || 1350;
   off.width = imgW;
   off.height = imgH;
   const ctx = off.getContext('2d');
@@ -133,10 +137,10 @@ function getPunchedFrame(img: HTMLImageElement): HTMLCanvasElement {
   // 1. Draw original frame image
   ctx.drawImage(img, 0, 0);
 
-  // 2. Punch out the white circle at (474.5, 538.5) radius 301
+  // 2. Punch out the full white circle cutout at center (540, 670) with radius 365
   ctx.globalCompositeOperation = 'destination-out';
   ctx.beginPath();
-  ctx.arc(474.5, 538.5, 301, 0, Math.PI * 2);
+  ctx.arc(540, 670, 365, 0, Math.PI * 2);
   ctx.fill();
 
   punchedFrameCanvas = off;
@@ -162,20 +166,23 @@ function renderFormatA(
   ctx.fillStyle = '#0b5c35';
   ctx.fillRect(0, 0, W, H);
 
-  // Geometry derived from plan_a.png (950 × 1190)
-  const scaleX = W / 950;
-  const scaleY = H / 1190;
-
-  const circleCX = 474.5 * scaleX; // ~539.4 px
-  const circleCY = 538.5 * scaleY; // ~611.1 px
-  const circleR  = 301 * scaleX;    // ~342.2 px
+  // Exact circle parameters for 1080 × 1350 frame overlay
+  const circleCX = 540;
+  const circleCY = 670;
+  const circleR  = 365;
 
   // ── Step 2. Draw user photo UNDER the frame overlay ──
   if (opts.userImage) {
     ctx.save();
-    // Clip slightly larger (+3px) than hole to ensure zero gap under frame border
+    // Fill white circle background under photo for transparent PNGs or scaled photos
+    ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.arc(circleCX, circleCY, circleR + 3, 0, Math.PI * 2);
+    ctx.arc(circleCX, circleCY, circleR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Clip slightly larger (+2px) than hole to ensure zero gap under frame border
+    ctx.beginPath();
+    ctx.arc(circleCX, circleCY, circleR + 2, 0, Math.PI * 2);
     ctx.clip();
 
     const img = opts.userImage;
@@ -190,8 +197,8 @@ function renderFormatA(
       drawW = diameter * opts.scale;
       drawH = drawW / imgAspect;
     }
-    if (drawW < diameter) { drawW = diameter; drawH = drawW / imgAspect; }
-    if (drawH < diameter) { drawH = diameter; drawW = drawH * imgAspect; }
+    if (drawW < diameter * opts.scale) { drawW = diameter * opts.scale; drawH = drawW / imgAspect; }
+    if (drawH < diameter * opts.scale) { drawH = diameter * opts.scale; drawW = drawH * imgAspect; }
 
     ctx.translate(circleCX + opts.offsetX, circleCY + opts.offsetY);
     ctx.rotate((opts.rotation * Math.PI) / 180);
@@ -213,6 +220,15 @@ function renderFormatA(
     ctx.drawImage(frameOverlay, 0, 0, W, H);
   } else {
     loadPfpFrame().then(() => {
+      if (canvas) drawGraphic(canvas, opts);
+    });
+  }
+
+  // ── Step 4. Draw pink Goa sticker (pfp_beage.png) ON TOP ──
+  if (pfpStickerImage?.complete && pfpStickerImage.naturalWidth > 0) {
+    ctx.drawImage(pfpStickerImage, 662, 810, 209, 203);
+  } else {
+    loadPfpSticker().then(() => {
       if (canvas) drawGraphic(canvas, opts);
     });
   }
