@@ -3,9 +3,8 @@ import { drawGraphic, RenderOptions } from './canvas/renderer';
 import { processAndLoadImage } from './utils/imageLoader';
 
 // Application State
-// Application State
 const state: RenderOptions = {
-  format: 'formatB',
+  format: 'formatA',   // default to PFP Frame
   themeId: 'neon',
   userImage: null,
   scale: 1.0,
@@ -43,6 +42,16 @@ function initApp() {
         <p>Create your custom Builder Badge in seconds. Download and share on X with <strong>#FrameInGoa</strong>.</p>
       </div>
 
+      <!-- Format Tabs -->
+      <div class="format-tabs">
+        <button id="tabA" class="tab-btn active" data-format="formatA">
+          🖼️ PFP Frame
+        </button>
+        <button id="tabB" class="tab-btn" data-format="formatB">
+          🪪 Builder ID Card
+        </button>
+      </div>
+
       <!-- App Main Grid -->
       <div class="app-grid">
         <!-- Left Panel: Controls & Inputs -->
@@ -59,7 +68,7 @@ function initApp() {
               <line x1="12" y1="3" x2="12" y2="15"></line>
             </svg>
             <div class="dropzone-title">Click or Drag Photo Here</div>
-            <div class="dropzone-subtitle">Supports JPG, PNG, WebP & iPhone HEIC</div>
+            <div class="dropzone-subtitle">Supports JPG, PNG, WebP &amp; iPhone HEIC</div>
             <input type="file" id="fileInput" accept="image/*" style="display: none" />
           </div>
 
@@ -90,21 +99,23 @@ function initApp() {
             <span>🔄</span> Reset Image Adjustments
           </button>
 
-          <!-- Input Fields -->
-          <div class="form-group">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-              <label class="form-label" style="margin-bottom: 0;">Builder Name</label>
-              <span id="countName" class="char-counter">${state.name.length}/15</span>
+          <!-- Format B only: Input Fields -->
+          <div id="formatBFields">
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                <label class="form-label" style="margin-bottom: 0;">Builder Name</label>
+                <span id="countName" class="char-counter">${state.name.length}/15</span>
+              </div>
+              <input type="text" id="inputName" class="form-input" value="${state.name}" maxlength="15" placeholder="e.g. Alex Rivera" />
             </div>
-            <input type="text" id="inputName" class="form-input" value="${state.name}" maxlength="15" placeholder="e.g. Alex Rivera" />
-          </div>
 
-          <div class="form-group">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-              <label class="form-label" style="margin-bottom: 0;">Role / Tech Stack</label>
-              <span id="countStack" class="char-counter">${state.stackRole.length}/24</span>
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                <label class="form-label" style="margin-bottom: 0;">Role / Tech Stack</label>
+                <span id="countStack" class="char-counter">${state.stackRole.length}/24</span>
+              </div>
+              <input type="text" id="inputStack" class="form-input" value="${state.stackRole}" maxlength="24" placeholder="e.g. Fullstack, Rust &amp; Solana" />
             </div>
-            <input type="text" id="inputStack" class="form-input" value="${state.stackRole}" maxlength="24" placeholder="e.g. Fullstack, Rust & Solana" />
           </div>
         </div>
 
@@ -114,13 +125,13 @@ function initApp() {
            Live Graphic Preview
           </h2>
 
-          <div id="canvasWrapper" class="canvas-wrapper badge-aspect">
+          <div id="canvasWrapper" class="canvas-wrapper">
             <canvas id="mainCanvas"></canvas>
           </div>
 
           <div class="actions-row">
             <button id="btnDownload" class="btn-primary">
-              <span>⬇️</span> Download 
+              <span>⬇️</span> Download
             </button>
             <button id="btnShareX" class="btn-x-share">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -137,12 +148,51 @@ function initApp() {
   `;
 
   mainCanvas = document.getElementById('mainCanvas') as HTMLCanvasElement;
+
+  // Set initial canvas aspect wrapper
+  updateCanvasWrapper();
+
   bindEvents();
   render();
 }
 
+function updateCanvasWrapper() {
+  const wrapper = document.getElementById('canvasWrapper');
+  const formatBFields = document.getElementById('formatBFields');
+  if (!wrapper) return;
+
+  if (state.format === 'formatA') {
+    // Square 1:1 for PFP frame
+    wrapper.style.aspectRatio = '1 / 1';
+    wrapper.style.maxWidth = '480px';
+    if (formatBFields) formatBFields.style.display = 'none';
+  } else {
+    // Tall 4:5 for builder card
+    wrapper.style.aspectRatio = '4 / 5';
+    wrapper.style.maxWidth = '420px';
+    if (formatBFields) formatBFields.style.display = 'block';
+  }
+}
+
 function bindEvents() {
-  // Dropzone & File Input
+  // ── Format tab switching ──
+  document.getElementById('tabA')?.addEventListener('click', () => {
+    state.format = 'formatA';
+    document.getElementById('tabA')?.classList.add('active');
+    document.getElementById('tabB')?.classList.remove('active');
+    updateCanvasWrapper();
+    render();
+  });
+
+  document.getElementById('tabB')?.addEventListener('click', () => {
+    state.format = 'formatB';
+    document.getElementById('tabB')?.classList.add('active');
+    document.getElementById('tabA')?.classList.remove('active');
+    updateCanvasWrapper();
+    render();
+  });
+
+  // ── Dropzone & File Input ──
   const dropzone = document.getElementById('dropzone');
   const fileInput = document.getElementById('fileInput') as HTMLInputElement;
 
@@ -166,11 +216,11 @@ function bindEvents() {
     }
   });
 
-  // Sliders
-  const sZoom = document.getElementById('sliderZoom') as HTMLInputElement;
+  // ── Sliders ──
+  const sZoom   = document.getElementById('sliderZoom')   as HTMLInputElement;
   const sRotate = document.getElementById('sliderRotate') as HTMLInputElement;
-  const sPanX = document.getElementById('sliderPanX') as HTMLInputElement;
-  const sPanY = document.getElementById('sliderPanY') as HTMLInputElement;
+  const sPanX   = document.getElementById('sliderPanX')   as HTMLInputElement;
+  const sPanY   = document.getElementById('sliderPanY')   as HTMLInputElement;
 
   sZoom?.addEventListener('input', () => {
     state.scale = parseFloat(sZoom.value);
@@ -200,48 +250,44 @@ function bindEvents() {
     render();
   });
 
-  // Reset Button
+  // ── Reset ──
   document.getElementById('btnResetAdjust')?.addEventListener('click', () => {
     state.scale = 1.0;
     state.rotation = 0;
     state.offsetX = 0;
     state.offsetY = 0;
-    if (sZoom) sZoom.value = '1.0';
+    if (sZoom)   sZoom.value   = '1.0';
     if (sRotate) sRotate.value = '0';
-    if (sPanX) sPanX.value = '0';
-    if (sPanY) sPanY.value = '0';
-    document.getElementById('valZoom')!.textContent = '1.0x';
+    if (sPanX)   sPanX.value   = '0';
+    if (sPanY)   sPanY.value   = '0';
+    document.getElementById('valZoom')!.textContent   = '1.0x';
     document.getElementById('valRotate')!.textContent = '0°';
-    document.getElementById('valPanX')!.textContent = '0px';
-    document.getElementById('valPanY')!.textContent = '0px';
+    document.getElementById('valPanX')!.textContent   = '0px';
+    document.getElementById('valPanY')!.textContent   = '0px';
     render();
   });
 
-  // Inputs
-  const inputName = document.getElementById('inputName') as HTMLInputElement;
+  // ── Text inputs (Format B only) ──
+  const inputName  = document.getElementById('inputName')  as HTMLInputElement;
   const inputStack = document.getElementById('inputStack') as HTMLInputElement;
-  const countName = document.getElementById('countName');
+  const countName  = document.getElementById('countName');
   const countStack = document.getElementById('countStack');
 
   inputName?.addEventListener('input', () => {
-    if (inputName.value.length > 15) {
-      inputName.value = inputName.value.slice(0, 15);
-    }
+    if (inputName.value.length > 15) inputName.value = inputName.value.slice(0, 15);
     state.name = inputName.value;
     if (countName) countName.textContent = `${inputName.value.length}/15`;
     render();
   });
 
   inputStack?.addEventListener('input', () => {
-    if (inputStack.value.length > 24) {
-      inputStack.value = inputStack.value.slice(0, 24);
-    }
+    if (inputStack.value.length > 24) inputStack.value = inputStack.value.slice(0, 24);
     state.stackRole = inputStack.value;
     if (countStack) countStack.textContent = `${inputStack.value.length}/24`;
     render();
   });
 
-  // Action Buttons
+  // ── Action Buttons ──
   document.getElementById('btnDownload')?.addEventListener('click', downloadGraphic);
   document.getElementById('btnShareX')?.addEventListener('click', shareToX);
 }
@@ -271,32 +317,24 @@ function downloadGraphic() {
   const rawName = state.name ? state.name.trim() : '';
   const sanitized = rawName
     ? rawName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
-    : 'builder';
+    : state.format === 'formatA' ? 'pfp_frame' : 'builder';
   const filename = `${sanitized}_hhgoa2026.png`;
 
   if (mainCanvas.toBlob) {
     mainCanvas.toBlob((blob) => {
-      if (!blob) {
-        fallbackDataUrlDownload(filename);
-        return;
-      }
+      if (!blob) { fallbackDataUrlDownload(filename); return; }
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.style.display = 'none';
       link.href = url;
       link.setAttribute('download', filename);
       link.download = filename;
-
       document.body.appendChild(link);
       link.click();
-
       setTimeout(() => {
-        if (link.parentNode) {
-          link.parentNode.removeChild(link);
-        }
+        if (link.parentNode) link.parentNode.removeChild(link);
         URL.revokeObjectURL(url);
       }, 500);
-
       showToast(`Downloaded ${filename}! 🚀`);
     }, 'image/png', 1.0);
   } else {
@@ -312,16 +350,9 @@ function fallbackDataUrlDownload(filename: string) {
   link.href = dataUrl;
   link.setAttribute('download', filename);
   link.download = filename;
-
   document.body.appendChild(link);
   link.click();
-
-  setTimeout(() => {
-    if (link.parentNode) {
-      link.parentNode.removeChild(link);
-    }
-  }, 300);
-
+  setTimeout(() => { if (link.parentNode) link.parentNode.removeChild(link); }, 300);
   showToast(`Downloaded ${filename}! 🚀`);
 }
 
@@ -339,40 +370,34 @@ async function shareToX() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         imageBase64: base64,
-        format: 'formatB',
+        format: state.format,
         name: state.name,
         builderTitle: state.builderTitle
       })
     });
     if (resp.ok) {
       const data = await resp.json();
-      if (data.shareUrl) {
-        shareUrl = data.shareUrl;
-      }
+      if (data.shareUrl) shareUrl = data.shareUrl;
     }
   } catch (err) {
     console.warn('Backend share link endpoint unavailable, falling back to direct tweet intent:', err);
   }
 
-  // Pre-filled tweet caption with required hashtag #FrameInGoa
   const caption = encodeURIComponent(
-    'Excited for HH Goa 2026! 🚀 Created my official Builder Badge with #FrameInGoa.'
+    state.format === 'formatA'
+      ? 'Just created my HH Goa 2026 PFP frame! 🚀🌴 Join the builder community at #FrameInGoa'
+      : 'Excited for HH Goa 2026! 🚀 Created my official Builder Badge with #FrameInGoa.'
   );
 
   const tweetIntentUrl = `https://x.com/intent/tweet?text=${caption}&url=${encodeURIComponent(shareUrl)}`;
 
-  // Mobile Web Share API check if supported
   if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
     try {
       mainCanvas.toBlob(async (blob) => {
         if (blob) {
-          const file = new File([blob], 'HH_Goa_2026_Badge.png', { type: 'image/png' });
+          const file = new File([blob], 'HH_Goa_2026.png', { type: 'image/png' });
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              title: 'HH Goa 2026 Badge',
-              text: 'Created my HH Goa 2026 badge! #FrameInGoa',
-              files: [file]
-            });
+            await navigator.share({ title: 'HH Goa 2026', text: 'Created my HH Goa 2026 graphic! #FrameInGoa', files: [file] });
             showToast('Shared successfully!');
             return;
           }
@@ -385,7 +410,6 @@ async function shareToX() {
     }
   }
 
-  // Open X tweet intent window
   window.open(tweetIntentUrl, '_blank');
   showToast('Opened X post draft with #FrameInGoa! 🐦');
 }
@@ -396,9 +420,7 @@ function showToast(msg: string) {
   toast.textContent = msg;
   toast.style.display = 'flex';
   if (toastTimeout) clearTimeout(toastTimeout);
-  toastTimeout = window.setTimeout(() => {
-    toast.style.display = 'none';
-  }, 3500);
+  toastTimeout = window.setTimeout(() => { toast.style.display = 'none'; }, 3500);
 }
 
 // Initialize on DOM ready
