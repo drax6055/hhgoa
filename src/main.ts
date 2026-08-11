@@ -162,12 +162,12 @@ function updateCanvasWrapper() {
   if (!wrapper) return;
 
   if (state.format === 'formatA') {
-    // Square 1:1 for PFP frame
-    wrapper.style.aspectRatio = '1 / 1';
-    wrapper.style.maxWidth = '480px';
+    // 4:5 portrait — matches the frame PNG natural ratio (1080×1350)
+    wrapper.style.aspectRatio = '4 / 5';
+    wrapper.style.maxWidth = '420px';
     if (formatBFields) formatBFields.style.display = 'none';
   } else {
-    // Tall 4:5 for builder card
+    // 4:5 portrait — matches the Builder ID Card badge
     wrapper.style.aspectRatio = '4 / 5';
     wrapper.style.maxWidth = '420px';
     if (formatBFields) formatBFields.style.display = 'block';

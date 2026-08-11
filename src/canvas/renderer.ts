@@ -89,16 +89,17 @@ loadPfpSticker().catch(() => {});
 
 export function drawGraphic(canvas: HTMLCanvasElement, options: RenderOptions) {
   if (options.format === 'formatA') {
-    // Format A: square 1080×1080 PFP frame
-    const size = 1080;
-    if (canvas.width !== size || canvas.height !== size) {
-      canvas.width = size;
-      canvas.height = size;
+    // Format A: 1080×1350 portrait PFP frame (matches frame PNG 4:5 ratio)
+    const W = 1080;
+    const H = 1350;
+    if (canvas.width !== W || canvas.height !== H) {
+      canvas.width = W;
+      canvas.height = H;
     }
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    ctx.clearRect(0, 0, size, size);
-    renderFormatA(ctx, size, size, options, canvas);
+    ctx.clearRect(0, 0, W, H);
+    renderFormatA(ctx, W, H, options, canvas);
   } else {
     // Format B: tall badge 1587×2245
     const width = 1587;
@@ -134,23 +135,12 @@ function renderFormatA(
   ctx.fillRect(0, 0, W, H);
 
   // ── Compute frame layout geometry ──
-  // Frame PNG is portrait (4:5 ratio). We scale it to cover the square canvas.
-  const frameSrcW = pfpFrameImage ? pfpFrameImage.naturalWidth  : 950;
-  const frameSrcH = pfpFrameImage ? pfpFrameImage.naturalHeight : 1190;
-  const frameAspect = frameSrcW / frameSrcH;
-
-
-  // Scale frame to COVER the square canvas (same as CSS background-size: cover)
-  let frameDrawW: number, frameDrawH: number, frameOffsetX: number, frameOffsetY: number;
-  if (W / H > frameAspect) {
-    frameDrawW = W;
-    frameDrawH = W / frameAspect;
-  } else {
-    frameDrawH = H;
-    frameDrawW = H * frameAspect;
-  }
-  frameOffsetX = (W - frameDrawW) / 2;
-  frameOffsetY = (H - frameDrawH) / 2;
+  // Canvas is 1080×1350 (4:5), frame PNG is also ~4:5 portrait.
+  // Draw the frame to FILL the entire canvas exactly — no cropping, no bars.
+  const frameOffsetX = 0;
+  const frameOffsetY = 0;
+  const frameDrawW   = W;
+  const frameDrawH   = H;
 
   // Circle hole position measured from plan_a.png:
   //   centre ~50% x, ~44.5% y within the source image
