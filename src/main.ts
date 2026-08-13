@@ -35,7 +35,7 @@ function initApp() {
       </div>
     </header>
 
-    <div class="container">
+    <main id="main-content" class="container">
       <!-- Hero Title -->
       <div class="hero-header">
         <h1>HH Goa 2026 Graphic Studio</h1>
@@ -154,7 +154,7 @@ function initApp() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
 
     <div id="toast" class="toast" role="status" aria-live="polite" style="display: none"></div>
   `;

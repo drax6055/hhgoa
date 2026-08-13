@@ -14,8 +14,10 @@
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌴</text></svg>" />
   
-  <!-- Preload critical frame overlay image for fast LCP -->
+  <!-- Preload critical frame overlay image and fonts to break request chain latency -->
   <link rel="preload" as="image" href="/pfp_frame.png" fetchpriority="high" />
+  <link rel="preload" href="/fonts/Imbue-900.ttf" as="font" type="font/ttf" crossorigin="anonymous" />
+  <link rel="preload" href="/fonts/VictorMono-400.ttf" as="font" type="font/ttf" crossorigin="anonymous" />
 
   <!-- Open Graph / Twitter -->
   <meta property="og:type" content="website" />
