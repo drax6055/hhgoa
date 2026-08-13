@@ -299,6 +299,79 @@ function bindEvents() {
     render();
   });
 
+  // ── Canvas Drag-to-Pan & Scroll-to-Zoom ──
+  const canvasWrapper = document.getElementById('canvasWrapper');
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+  let initialOffsetX = 0;
+  let initialOffsetY = 0;
+
+  const startDrag = (clientX: number, clientY: number) => {
+    if (!state.userImage) return;
+    isDragging = true;
+    startX = clientX;
+    startY = clientY;
+    initialOffsetX = state.offsetX;
+    initialOffsetY = state.offsetY;
+    if (canvasWrapper) canvasWrapper.style.cursor = 'grabbing';
+  };
+
+  const moveDrag = (clientX: number, clientY: number) => {
+    if (!isDragging || !canvasWrapper) return;
+    const rect = canvasWrapper.getBoundingClientRect();
+    const scaleFactor = 1080 / (rect.width || 420);
+    const dx = Math.round((clientX - startX) * scaleFactor);
+    const dy = Math.round((clientY - startY) * scaleFactor);
+
+    state.offsetX = Math.max(-300, Math.min(300, initialOffsetX + dx));
+    state.offsetY = Math.max(-300, Math.min(300, initialOffsetY + dy));
+
+    if (sPanX) sPanX.value = state.offsetX.toString();
+    if (sPanY) sPanY.value = state.offsetY.toString();
+    const valPanX = document.getElementById('valPanX');
+    const valPanY = document.getElementById('valPanY');
+    if (valPanX) valPanX.textContent = `${state.offsetX}px`;
+    if (valPanY) valPanY.textContent = `${state.offsetY}px`;
+    render();
+  };
+
+  const stopDrag = () => {
+    isDragging = false;
+    if (canvasWrapper) canvasWrapper.style.cursor = 'grab';
+  };
+
+  canvasWrapper?.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY));
+  window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
+  window.addEventListener('mouseup', stopDrag);
+
+  canvasWrapper?.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      startDrag(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchmove', (e) => {
+    if (isDragging && e.touches.length === 1) {
+      moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchend', stopDrag);
+
+  canvasWrapper?.addEventListener('wheel', (e) => {
+    if (!state.userImage) return;
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.05 : 0.05;
+    state.scale = Math.max(0.5, Math.min(2.5, parseFloat((state.scale + delta).toFixed(2))));
+    if (sZoom) sZoom.value = state.scale.toString();
+    const valZoom = document.getElementById('valZoom');
+    if (valZoom) valZoom.textContent = `${state.scale.toFixed(2)}x`;
+    render();
+  }, { passive: false });
+
+  if (canvasWrapper) canvasWrapper.style.cursor = 'grab';
+
   // ── Action Buttons ──
   document.getElementById('btnDownload')?.addEventListener('click', downloadGraphic);
   document.getElementById('btnShareX')?.addEventListener('click', shareToX);
