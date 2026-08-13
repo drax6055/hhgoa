@@ -1,4 +1,53 @@
-@import url('https://fonts.googleapis.com/css2?family=Imbue:opsz,wght@10..100,400;10..100,700;10..100,900&family=Victor+Mono:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+/* Local Self-Hosted Fonts */
+@font-face {
+  font-family: 'Imbue';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/Imbue-400.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Imbue';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/Imbue-700.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Imbue';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('/fonts/Imbue-900.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Victor Mono';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/VictorMono-Italic-400.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Victor Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/VictorMono-400.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Victor Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/VictorMono-600.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Victor Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/VictorMono-700.ttf') format('truetype');
+}
 
 :root {
   --bg-primary: #0b6839;
@@ -12,7 +61,7 @@
   --accent-red: #fb2c36;
   --text-main: #ffffff;
   --text-dark: #000000;
-  --text-muted: rgba(255, 255, 255, 0.65);
+  --text-muted: rgba(255, 255, 255, 0.92);
   --radius-lg: 4px;
   --radius-md: 4px;
   --radius-sm: 2px;

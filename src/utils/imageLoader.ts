@@ -1,5 +1,3 @@
-import heic2any from 'heic2any';
-
 export async function processAndLoadImage(file: File): Promise<HTMLImageElement> {
   let blob: Blob = file;
 
@@ -11,6 +9,8 @@ export async function processAndLoadImage(file: File): Promise<HTMLImageElement>
 
   if (isHeic) {
     try {
+      const heic2anyModule = await import('heic2any');
+      const heic2any = heic2anyModule.default || heic2anyModule;
       const converted = await heic2any({
         blob: file,
         toType: 'image/jpeg',

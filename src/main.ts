@@ -43,11 +43,11 @@ function initApp() {
       </div>
 
       <!-- Format Tabs -->
-      <div class="format-tabs">
-        <button id="tabA" class="tab-btn active" data-format="formatA">
+      <div class="format-tabs" role="tablist" aria-label="Format Selector">
+        <button id="tabA" class="tab-btn active" role="tab" aria-selected="true" aria-controls="canvasWrapper" data-format="formatA">
           🖼️ PFP Frame
         </button>
-        <button id="tabB" class="tab-btn" data-format="formatB">
+        <button id="tabB" class="tab-btn" role="tab" aria-selected="false" aria-controls="canvasWrapper" data-format="formatB">
           🪪 Builder ID Card
         </button>
       </div>
@@ -61,10 +61,10 @@ function initApp() {
           </h2>
 
           <!-- Photo Upload Dropzone -->
-          <div id="dropzone" class="dropzone" tabindex="0">
+          <div id="dropzone" class="dropzone" role="button" aria-label="Upload photo dropzone. Click or press enter to select an image." tabindex="0">
             <!-- State A: No image -->
             <div id="dropzone-empty">
-              <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                 <polyline points="17 8 12 3 7 8"></polyline>
                 <line x1="12" y1="3" x2="12" y2="15"></line>
@@ -75,39 +75,39 @@ function initApp() {
             <!-- State B: Image loaded (hidden by default) -->
             <div id="dropzone-loaded" style="display:none; width:100%; text-align:center;">
               <div style="position:relative; display:inline-block; margin-bottom:0.6rem;">
-                <img id="dropzone-thumb" src="" alt="Preview" style="width:90px; height:90px; object-fit:cover; border-radius:50%; border:3px solid var(--accent-yellow); box-shadow:var(--shadow-brutal-sm);" />
-                <div style="position:absolute;bottom:0;right:0;background:var(--accent-magenta);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;">✓</div>
+                <img id="dropzone-thumb" src="" alt="Uploaded photo thumbnail" width="90" height="90" style="width:90px; height:90px; object-fit:cover; border-radius:50%; border:3px solid var(--accent-yellow); box-shadow:var(--shadow-brutal-sm);" />
+                <div style="position:absolute;bottom:0;right:0;background:var(--accent-magenta);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;" aria-hidden="true">✓</div>
               </div>
               <div class="dropzone-title" style="color:var(--accent-yellow); font-size:0.9rem;">Photo Loaded!</div>
-              <div class="dropzone-subtitle" style="color:rgba(255,251,232,0.6); font-size:0.78rem; margin-top:0.2rem;">Click to change photo</div>
+              <div class="dropzone-subtitle" style="color:#fffbe8; font-size:0.82rem; margin-top:0.2rem;">Click to change photo</div>
             </div>
-            <input type="file" id="fileInput" accept="image/*" style="display: none" />
+            <input type="file" id="fileInput" accept="image/*" aria-label="Choose photo file from device" style="display: none" />
           </div>
 
           <!-- Adjustments Sliders -->
           <div class="slider-row">
             <div class="slider-group">
-              <label>Zoom <span id="valZoom">1.0x</span></label>
-              <input type="range" id="sliderZoom" min="0.5" max="2.5" step="0.05" value="1.0" />
+              <label for="sliderZoom">Zoom <span id="valZoom">1.0x</span></label>
+              <input type="range" id="sliderZoom" aria-label="Image zoom level" min="0.5" max="2.5" step="0.05" value="1.0" />
             </div>
             <div class="slider-group">
-              <label>Rotate <span id="valRotate">0°</span></label>
-              <input type="range" id="sliderRotate" min="-180" max="180" step="5" value="0" />
+              <label for="sliderRotate">Rotate <span id="valRotate">0°</span></label>
+              <input type="range" id="sliderRotate" aria-label="Image rotation degrees" min="-180" max="180" step="5" value="0" />
             </div>
           </div>
 
           <div class="slider-row">
             <div class="slider-group">
-              <label>Pan X <span id="valPanX">0px</span></label>
-              <input type="range" id="sliderPanX" min="-300" max="300" step="5" value="0" />
+              <label for="sliderPanX">Pan X <span id="valPanX">0px</span></label>
+              <input type="range" id="sliderPanX" aria-label="Image horizontal pan" min="-300" max="300" step="5" value="0" />
             </div>
             <div class="slider-group">
-              <label>Pan Y <span id="valPanY">0px</span></label>
-              <input type="range" id="sliderPanY" min="-300" max="300" step="5" value="0" />
+              <label for="sliderPanY">Pan Y <span id="valPanY">0px</span></label>
+              <input type="range" id="sliderPanY" aria-label="Image vertical pan" min="-300" max="300" step="5" value="0" />
             </div>
           </div>
 
-          <button id="btnResetAdjust" class="btn-secondary" style="width: 100%; margin-bottom: 1.5rem; justify-content: center;">
+          <button id="btnResetAdjust" class="btn-secondary" aria-label="Reset image adjustments" style="width: 100%; margin-bottom: 1.5rem; justify-content: center;">
             <span>🔄</span> Reset Image Adjustments
           </button>
 
@@ -115,18 +115,18 @@ function initApp() {
           <div id="formatBFields">
             <div class="form-group">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-                <label class="form-label" style="margin-bottom: 0;">Builder Name</label>
+                <label for="inputName" class="form-label" style="margin-bottom: 0;">Builder Name</label>
                 <span id="countName" class="char-counter">${state.name.length}/15</span>
               </div>
-              <input type="text" id="inputName" class="form-input" value="${state.name}" maxlength="15" placeholder="e.g. Alex Rivera" />
+              <input type="text" id="inputName" aria-label="Builder Name" class="form-input" value="${state.name}" maxlength="15" placeholder="e.g. Alex Rivera" />
             </div>
 
             <div class="form-group">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-                <label class="form-label" style="margin-bottom: 0;">Role / Tech Stack</label>
+                <label for="inputStack" class="form-label" style="margin-bottom: 0;">Role / Tech Stack</label>
                 <span id="countStack" class="char-counter">${state.stackRole.length}/24</span>
               </div>
-              <input type="text" id="inputStack" class="form-input" value="${state.stackRole}" maxlength="24" placeholder="e.g. Fullstack, Rust &amp; Solana" />
+              <input type="text" id="inputStack" aria-label="Role or Tech Stack" class="form-input" value="${state.stackRole}" maxlength="24" placeholder="e.g. Fullstack, Rust &amp; Solana" />
             </div>
           </div>
         </div>
@@ -138,15 +138,15 @@ function initApp() {
           </h2>
 
           <div id="canvasWrapper" class="canvas-wrapper">
-            <canvas id="mainCanvas"></canvas>
+            <canvas id="mainCanvas" aria-label="Generated graphic preview canvas"></canvas>
           </div>
 
           <div class="actions-row">
-            <button id="btnDownload" class="btn-primary">
+            <button id="btnDownload" class="btn-primary" aria-label="Download generated image file">
               <span>⬇️</span> Download
             </button>
-            <button id="btnShareX" class="btn-x-share">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <button id="btnShareX" class="btn-x-share" aria-label="Share generated graphic to X">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
               </svg>
               Share to X
@@ -156,7 +156,7 @@ function initApp() {
       </div>
     </div>
 
-    <div id="toast" class="toast" style="display: none"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite" style="display: none"></div>
   `;
 
   mainCanvas = document.getElementById('mainCanvas') as HTMLCanvasElement;
